@@ -19,17 +19,17 @@ at this page https://volby.cz/pls/ps2017nss/ps3?xjazyk=CZ and copy the url.
 def get_user_input():
     while True:
         url = input("Enter the url of list of municipalities: ")
-        file_name = input("""Enter name of the file without the suffix .csv,
-where you want to save the data: """)
-        if check_user_input(url, file_name):
+        file_name = input("""Enter name of the file, where you want to save
+the data: """)
+        if check_url(url):
+            if ".csv" not in file_name:
+                file_name += ".csv"
             return url, file_name
 
 
-def check_user_input(url, file_name):
-    if ".csv" not in file_name and\
-            "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=" in url and\
+def check_url(url):
+    if "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=" in url and\
             "&xnumnuts=" in url:
-        get_data(url)
         print("Downloading data...")
         return True
     else:
@@ -39,8 +39,7 @@ def check_user_input(url, file_name):
 
 def get_data(url):
     r = requests.get(url)
-    soup = bs(r.text, "html.parser")
-    return soup
+    return bs(r.text, "html.parser")
 
 
 def get_code_and_location(tr):
@@ -51,8 +50,8 @@ def get_code_and_location(tr):
     return code, location, url_part
 
 
-def make_data_dict(row):
-    code, location, url_part = get_code_and_location(row)
+def make_data_dict(districts_table_data):
+    code, location, url_part = districts_table_data
     url1 = "https://volby.cz/pls/ps2017nss/" + url_part
     soup = get_data(url1)  # data from one district page
     tables = soup.find_all("table")
@@ -81,14 +80,14 @@ def get_data_list(soup):
         all_rows = table.find_all("tr")
         for row in all_rows[2:]:  # first two rows are headers
             try:
-                data_list.append(make_data_dict(row))
+                data_list.append(make_data_dict(get_code_and_location(row)))
             except AttributeError:
                 break
     return data_list
 
 
 def write_to_csv(data_list, file_name):
-    with open(file_name + ".csv", "w", encoding="utf-8", newline="") as file:
+    with open(file_name, "w", encoding="utf-8", newline="") as file:
         header = data_list[0].keys()
         writer = csv.DictWriter(file, fieldnames=header)
         writer.writeheader()
